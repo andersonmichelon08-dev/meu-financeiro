@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Meu Financeiro — Verificar acesso pessoal</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172b48;font:16px system-ui,sans-serif;padding:24px}main{max-width:520px;margin:40px auto;background:white;border:1px solid #dae3ef;border-radius:18px;padding:26px}h1{font-size:25px;margin-top:0}p{line-height:1.5}label{display:block;font-weight:600;margin-top:18px}input,button{font:inherit;width:100%;padding:13px;border-radius:9px;border:1px solid #b8c8da;margin-top:7px}button{background:#1761bc;color:white;font-weight:700;border:0;cursor:pointer;margin-top:20px}button:disabled{opacity:.6;cursor:wait}#result{white-space:pre-line;line-height:1.6;padding:16px;background:#eef4fc;border-radius:9px;margin-top:18px}small{display:block;line-height:1.5;color:#52657d}
+</style>
+</head>
+<body><main>
+<h1>📈 Meu Financeiro</h1>
+<p>Verificação do seu acesso pessoal.</p>
+<p>Esta página apenas confere o login e lê o novo banco. Não importa, altera ou apaga lançamentos.</p>
+<form id="login">
+<label for="email">Seu e-mail pessoal</label><input id="email" type="email" autocomplete="username" required>
+<label for="password">Senha criada para o Meu Financeiro</label><input id="password" type="password" autocomplete="current-password" required>
+<button id="test" type="submit">Verificar acesso</button>
+</form>
+<div id="result" role="status" aria-live="polite" hidden></div>
+<p><small>Se o novo banco estiver vazio, seus dados ainda precisam ser transferidos. Isso não significa que os lançamentos do sistema atual foram apagados.</small></p>
+</main>
+<script>
+'use strict';
+const BASE='https://tabdtuujeuwplckpzjvm.supabase.co';
+const API_KEY='sb_publishable_1MhIIpF8npEuPrVFagdi-g_cWvBeTnR';
+const OWNER='dae57ac1-d23d-476f-9037-4c04e0e46e7a';
+const form=document.getElementById('login'),button=document.getElementById('test'),result=document.getElementById('result');
+function show(message){result.hidden=false;result.textContent=message}
+async function request(path,body,token){
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+ try{return await fetch(BASE+path,{method:'POST',headers:{apikey:API_KEY,'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},body:JSON.stringify(body),credentials:'omit',cache:'no-store',referrerPolicy:'no-referrer',signal:controller.signal});}
+ finally{clearTimeout(timer)}
+}
+form.addEventListener('submit',async event=>{
+ event.preventDefault();if(button.disabled)return;button.disabled=true;show('Verificando…');
+ let session=null;
+ try{
+  const closed=await request('/rest/v1/rpc/mf_read',{});
+  if(closed.ok)throw new Error('O novo banco permitiu acesso sem login. Não prossiga com a transferência; envie uma foto deste resultado.');
+  if(![401,403].includes(closed.status))throw new Error('Não foi possível conferir a proteção do banco (código '+closed.status+'). Envie uma foto deste resultado.');
+  const auth=await request('/auth/v1/token?grant_type=password',{email:document.getElementById('email').value.trim(),password:document.getElementById('password').value});
+  document.getElementById('password').value='';
+  if(!auth.ok)throw new Error(auth.status===400?'Não foi possível entrar. Confira o e-mail e a senha criada no Supabase para o Meu Financeiro.':'Falha no login (código '+auth.status+'). Envie uma foto deste resultado.');
+  session=await auth.json();
+  if(session.user?.id!==OWNER||!session.access_token)throw new Error('Esta conta não corresponde ao seu acesso pessoal configurado. Não prossiga com a transferência.');
+  const read=await request('/rest/v1/rpc/mf_read',{},session.access_token);
+  if(!read.ok)throw new Error('Login correto, mas a leitura do banco falhou (código '+read.status+'). Envie uma foto deste resultado.');
+  const data=await read.json();
+  if(!data||!Number.isSafeInteger(data.revision)||data.revision<0||!(data.data===null||(typeof data.data==='object'&&!Array.isArray(data.data)&&Array.isArray(data.data.lancamentos))))throw new Error('O banco respondeu em um formato inesperado. Envie uma foto deste resultado.');
+  const count=data.data?.lancamentos.length??0;
+  show('✓ Login pessoal confirmado.\n✓ Acesso sem login bloqueado.\n✓ Leitura do novo banco confirmada.\n\nLançamentos no novo banco: '+count+'.\n'+(data.data===null?'Seus dados ainda não foram transferidos para este banco.':'O novo banco já contém dados; precisamos conferi-los antes de transferir.')+'\n\nNenhum lançamento foi gravado ou apagado neste teste. Envie uma foto deste resultado.');
+ }catch(error){show(error.name==='AbortError'?'A conexão demorou demais. Confira a internet e tente novamente.':error instanceof TypeError?'Não foi possível conectar. Confira a internet e envie uma foto desta tela.':error.message);}
+ finally{session=null;document.getElementById('password').value='';button.disabled=false;}
+});
+</script>
+</body></html>
