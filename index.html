@@ -384,7 +384,7 @@ button,input,select,textarea{touch-action:manipulation}
     <div class="field"><label>Status</label><select id="status"><option>Pendente</option><option>Pago</option><option>Recebido</option></select></div>
     <div class="field"><label>Vencimento</label><input id="vencimento" type="date"></div>
     <div class="field"><label>Forma de pagamento</label><select id="forma"><option>Pix</option><option>Débito</option><option>Crédito</option><option>Dinheiro</option><option>Boleto</option><option>Transferência</option><option>Outro</option></select></div>
-    <div class="field"><label>Parcela</label><input id="parcela" placeholder="Ex.: 1/3"></div>
+    <div class="field"><label>Parcela</label><input id="parcela" placeholder="Ex.: 1/3" title="Informe 1/3 para gerar as próximas parcelas mensais. O valor informado é o valor de cada parcela."></div>
     <div class="field"><label>Recorrente todo mês? (gera 12 meses)</label><select id="recorrente"><option>Não</option><option>Sim</option></select></div>
     <div class="field full"><label>Observação</label><textarea id="obs" placeholder="Opcional"></textarea></div>
   </div>
@@ -856,13 +856,74 @@ function addMonths(dateStr, n){
  const day=Math.min(d,last);
  return `${target.getFullYear()}-${String(target.getMonth()+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
 }
+// Generates remaining installments only on the first save of an installment plan.
+// Stable IDs protect retries and saves of the same existing entry on two devices.
+function mfInstallmentSpec(value){
+ const match=String(value||'').trim().match(/^(\d+)\s*\/\s*(\d+)$/);
+ if(!match)return null;
+ const current=Number(match[1]),total=Number(match[2]);
+ if(!Number.isSafeInteger(current)||!Number.isSafeInteger(total)||current<1||total<current||total>120){
+   throw new Error('Informe uma parcela válida, por exemplo 1/3, com até 120 parcelas.');
+ }
+ return {current,total};
+}
+function mfPlanInstallments(obj,previous,records){
+ const spec=mfInstallmentSpec(obj.parcela);
+ if(previous?.installmentGroup){
+   const oldSpec=mfInstallmentSpec(previous.parcela);
+   if(!spec||!oldSpec||spec.current!==oldSpec.current||spec.total!==oldSpec.total){
+     throw new Error('As parcelas desta compra já foram geradas. Mantenha a identificação da parcela ao editar este lançamento.');
+   }
+   return {entry:obj,updates:[],added:0};
+ }
+ if(!spec||spec.total===1)return {entry:obj,updates:[],added:0};
+ if(obj.recorrente==='Sim')throw new Error('Para gerar parcelas, deixe "Recorrente todo mês?" como Não.');
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(obj.data)||!Number.isFinite(obj.valor)||obj.valor<=0){
+   throw new Error('Informe a data e o valor de cada parcela antes de salvar.');
+ }
+ const group='parcelas:'+obj.id;
+ const entry={...obj,parcela:spec.current+'/'+spec.total,vencimento:obj.vencimento||obj.data,installmentGroup:group};
+ const updates=[];
+ let added=0;
+ for(let number=spec.current+1;number<=spec.total;number++){
+   const offset=number-spec.current;
+   const data=addMonths(entry.data,offset),vencimento=addMonths(entry.vencimento,offset);
+   const parcela=number+'/'+spec.total,id=obj.id+':parcela:'+number;
+   const candidates=records.filter(x=>{
+     let other;
+     try{other=mfInstallmentSpec(x.parcela);}catch(_){return false;}
+     return x.id!==obj.id&&!x.installmentGroup&&other&&other.current===number&&other.total===spec.total&&
+       x.tipo===entry.tipo&&x.descricao===entry.descricao&&x.categoria===entry.categoria&&x.banco===entry.banco&&
+       Math.round(Number(x.valor)*100)===Math.round(entry.valor*100)&&x.data===data&&
+       (x.vencimento||x.data)===vencimento&&x.forma===entry.forma;
+   });
+   if(candidates.length>1)throw new Error('Há mais de um lançamento que pode ser a parcela '+parcela+'. Confira os registros antes de gerar as parcelas.');
+   const occupied=records.find(x=>x.id===id);
+   if(occupied&&occupied.installmentGroup!==group)throw new Error('Já existe um lançamento com o identificador desta parcela. Confira os registros antes de salvar.');
+   if(occupied){continue;}
+   if(candidates.length){
+     updates.push({...candidates[0],installmentGroup:group});
+   }else{
+     updates.push({...entry,id,data,vencimento,parcela,status:'Pendente',dataBaixa:'',recorrente:'Não'});
+     added++;
+   }
+ }
+ return {entry,updates,added};
+}
 function save(e){
  e.preventDefault();
  const editing=!!$('editId').value;
  const id=$('editId').value||newId();
- const obj={id,tipo:$('tipo').value,data:$('data').value,descricao:$('descricao').value,categoria:$('categoria').value,banco:$('banco').value,valor:+$('valor').value,status:$('status').value,vencimento:$('vencimento').value,forma:$('forma').value,parcela:$('parcela').value,recorrente:$('recorrente').value,obs:$('obs').value};
  const i=items.findIndex(x=>x.id===id);
+ let obj={...(i>=0?items[i]:{}),id,tipo:$('tipo').value,data:$('data').value,descricao:$('descricao').value,categoria:$('categoria').value,banco:$('banco').value,valor:+$('valor').value,status:$('status').value,vencimento:$('vencimento').value,forma:$('forma').value,parcela:$('parcela').value,recorrente:$('recorrente').value,obs:$('obs').value};
+ let plan;
+ try{plan=mfPlanInstallments(obj,i>=0?items[i]:null,items);}catch(error){alert(error.message);return;}
+ obj=plan.entry;
  if(i>=0) items[i]=obj; else items.push(obj);
+ for(const next of plan.updates){
+   const existing=items.findIndex(x=>x.id===next.id);
+   if(existing>=0)items[existing]=next;else items.push(next);
+ }
 
  if(!editing && obj.recorrente==='Sim'){
    const group=newId();
@@ -876,6 +937,7 @@ function save(e){
    alert('Lançamento recorrente criado para 12 meses. Os próximos meses ficaram como Pendentes.');
  }
  persist();dlg.close();
+ if(plan.added)alert(`${plan.added} parcela(s) futura(s) criada(s) como Pendentes. O valor de cada parcela é o valor informado no lançamento.`);
 }
 function edit(id){
  const x=items.find(a=>a.id===id);if(!x)return;$('editId').value=x.id;$('deleteCurrentBtn').style.display='inline-block';$('formTitle').textContent='Editar lançamento';
