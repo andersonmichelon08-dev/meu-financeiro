@@ -380,11 +380,11 @@ button,input,select,textarea{touch-action:manipulation}
     <div class="field full"><label>Descrição</label><input id="descricao" required placeholder="Ex.: Mercado, salário, combustível"></div>
     <div class="field"><label>Categoria</label><select id="categoria"><option>Moradia</option><option>Alimentação</option><option>Transporte</option><option>Combustível</option><option>Saúde</option><option>Lazer</option><option>Assinaturas</option><option>Impostos</option><option>Salário</option><option>Uber / Corridas</option><option>Outras Receitas</option><option>Outras Despesas</option><option>Transferência</option></select></div>
     <div class="field"><label>Banco</label><div style="display:flex;gap:8px;align-items:center"><select id="banco" required style="flex:1"></select><button type="button" class="neutral" onclick="openBanks()" style="white-space:nowrap;padding:12px 14px">➕ Novo banco</button></div></div>
-    <div class="field"><label>Valor</label><input id="valor" type="number" step="0.01" min="0.01" required placeholder="0,00"></div>
+    <div class="field"><label id="valorLabel">Valor</label><input id="valor" type="number" step="0.01" min="0.01" required placeholder="0,00"></div>
     <div class="field"><label>Status</label><select id="status"><option>Pendente</option><option>Pago</option><option>Recebido</option></select></div>
     <div class="field"><label>Vencimento</label><input id="vencimento" type="date"></div>
     <div class="field"><label>Forma de pagamento</label><select id="forma"><option>Pix</option><option>Débito</option><option>Crédito</option><option>Dinheiro</option><option>Boleto</option><option>Transferência</option><option>Outro</option></select></div>
-    <div class="field"><label>Parcela</label><input id="parcela" placeholder="Ex.: 1/3" title="Informe 1/3 para gerar as próximas parcelas mensais. O valor informado é o valor de cada parcela."></div>
+    <div class="field"><label>Parcela</label><input id="parcela" placeholder="Ex.: 3 ou 1/3" oninput="mfUpdateInstallmentLabel()" title="Novo lançamento: informe o valor total da compra e a quantidade de parcelas (3 ou 1/3). Ao editar, o valor é o da parcela já salva."></div>
     <div class="field"><label>Recorrente todo mês? (gera 12 meses)</label><select id="recorrente"><option>Não</option><option>Sim</option></select></div>
     <div class="field full"><label>Observação</label><textarea id="obs" placeholder="Opcional"></textarea></div>
   </div>
@@ -818,6 +818,7 @@ function openForm(tipo){
  $('editId').value=''; $('deleteCurrentBtn').style.display='none'; $('formTitle').textContent='Novo lançamento'; $('tipo').value=tipo; $('data').value=today();
  $('descricao').value=''; $('categoria').value=tipo==='Receita'?'Salário':'Alimentação'; $('banco').value=banks.includes('Itaú')?'Itaú':defaultBank();
  $('valor').value=''; $('status').value=tipo==='Receita'?'Recebido':'Pago'; $('vencimento').value=''; $('forma').value='Pix'; $('parcela').value=''; $('recorrente').value='Não'; $('obs').value='';
+ mfUpdateInstallmentLabel();
  dlg.showModal();
 }
 function openSalary(day){
@@ -858,8 +859,10 @@ function addMonths(dateStr, n){
 }
 // Generates remaining installments only on the first save of an installment plan.
 // Stable IDs protect retries and saves of the same existing entry on two devices.
-function mfInstallmentSpec(value){
- const match=String(value||'').trim().match(/^(\d+)\s*\/\s*(\d+)$/);
+function mfInstallmentSpec(value,allowCount=false){
+ const text=String(value||'').trim();
+ const count=allowCount?text.match(/^(\d+)\s*x?$/i):null;
+ const match=count?[count[0],'1',count[1]]:text.match(/^(\d+)\s*\/\s*(\d+)$/);
  if(!match)return null;
  const current=Number(match[1]),total=Number(match[2]);
  if(!Number.isSafeInteger(current)||!Number.isSafeInteger(total)||current<1||total<current||total>120){
@@ -867,8 +870,13 @@ function mfInstallmentSpec(value){
  }
  return {current,total};
 }
+function mfUpdateInstallmentLabel(){
+ let spec;
+ try{spec=mfInstallmentSpec($('parcela').value,!$('editId').value);}catch(_){spec=null;}
+ $('valorLabel').textContent=spec&&spec.total>1?($('editId').value?'Valor desta parcela':'Valor total da compra'):'Valor';
+}
 function mfPlanInstallments(obj,previous,records){
- const spec=mfInstallmentSpec(obj.parcela);
+ const spec=mfInstallmentSpec(obj.parcela,!previous);
  if(previous?.installmentGroup){
    const oldSpec=mfInstallmentSpec(previous.parcela);
    if(!spec||!oldSpec||spec.current!==oldSpec.current||spec.total!==oldSpec.total){
@@ -882,19 +890,23 @@ function mfPlanInstallments(obj,previous,records){
    throw new Error('Informe a data e o valor de cada parcela antes de salvar.');
  }
  const group='parcelas:'+obj.id;
- const entry={...obj,parcela:spec.current+'/'+spec.total,vencimento:obj.vencimento||obj.data,installmentGroup:group};
+ // Existing entries already store a per-installment amount; never divide them again.
+ const cents=Math.round(obj.valor*100);
+ if(!previous&&cents<spec.total)throw new Error('O valor total deve permitir pelo menos R$ 0,01 por parcela.');
+ const amount=number=>previous?obj.valor:(Math.floor(cents/spec.total)+(number<=cents%spec.total?1:0))/100;
+ const entry={...obj,valor:amount(spec.current),parcela:spec.current+'/'+spec.total,vencimento:obj.vencimento||obj.data,installmentGroup:group};
  const updates=[];
  let added=0;
  for(let number=spec.current+1;number<=spec.total;number++){
    const offset=number-spec.current;
    const data=addMonths(entry.data,offset),vencimento=addMonths(entry.vencimento,offset);
-   const parcela=number+'/'+spec.total,id=obj.id+':parcela:'+number;
+   const parcela=number+'/'+spec.total,id=obj.id+':parcela:'+number,valor=amount(number);
    const candidates=records.filter(x=>{
      let other;
      try{other=mfInstallmentSpec(x.parcela);}catch(_){return false;}
      return x.id!==obj.id&&!x.installmentGroup&&other&&other.current===number&&other.total===spec.total&&
        x.tipo===entry.tipo&&x.descricao===entry.descricao&&x.categoria===entry.categoria&&x.banco===entry.banco&&
-       Math.round(Number(x.valor)*100)===Math.round(entry.valor*100)&&x.data===data&&
+       Math.round(Number(x.valor)*100)===Math.round(valor*100)&&x.data===data&&
        (x.vencimento||x.data)===vencimento&&x.forma===entry.forma;
    });
    if(candidates.length>1)throw new Error('Há mais de um lançamento que pode ser a parcela '+parcela+'. Confira os registros antes de gerar as parcelas.');
@@ -904,7 +916,7 @@ function mfPlanInstallments(obj,previous,records){
    if(candidates.length){
      updates.push({...candidates[0],installmentGroup:group});
    }else{
-     updates.push({...entry,id,data,vencimento,parcela,status:'Pendente',dataBaixa:'',recorrente:'Não'});
+     updates.push({...entry,id,data,vencimento,parcela,valor,status:'Pendente',dataBaixa:'',recorrente:'Não'});
      added++;
    }
  }
@@ -937,11 +949,12 @@ function save(e){
    alert('Lançamento recorrente criado para 12 meses. Os próximos meses ficaram como Pendentes.');
  }
  persist();dlg.close();
- if(plan.added)alert(`${plan.added} parcela(s) futura(s) criada(s) como Pendentes. O valor de cada parcela é o valor informado no lançamento.`);
+ if(plan.added)alert(`${plan.added} parcela(s) futura(s) criada(s) como Pendentes. ${editing?'O valor das parcelas já salvas foi mantido.':'O valor total foi dividido entre as parcelas, preservando o total da compra.'}`);
 }
 function edit(id){
  const x=items.find(a=>a.id===id);if(!x)return;$('editId').value=x.id;$('deleteCurrentBtn').style.display='inline-block';$('formTitle').textContent='Editar lançamento';
  ['tipo','data','descricao','categoria','banco','valor','status','vencimento','forma','parcela','recorrente','obs'].forEach(k=>$(k).value=x[k]??(k==='recorrente'?'Não':''));
+ mfUpdateInstallmentLabel();
  dlg.showModal();
 }
 function del(id){if(confirm('Excluir este lançamento?')){items=items.filter(x=>x.id!==id);persist()}}
