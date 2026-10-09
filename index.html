@@ -289,9 +289,7 @@ button,input,select,textarea{touch-action:manipulation}
       <button class="income" onclick="openForm('Receita')">＋ Nova Receita</button>
       <button class="expense" onclick="openForm('Despesa')">＋ Nova Despesa</button>
       <button onclick="openTransfer()">⇄ Transferência</button>
-      <button onclick="openSalary(5)">💰 Salário dia 05</button>
-      <button onclick="openSalary(20)">💰 Salário dia 20</button>
-      <button onclick="generateSalaries()">📅 Prever salários do mês</button>
+      <button onclick="openForm('Receita')">💰 Registrar recebimento</button>
       <div class="nav-label">Planejamento</div>
       <button onclick="openFixed()">📌 Contas Fixas</button>
       <button onclick="openReserveGoal()">🎯 Metas / Reserva</button>
@@ -315,8 +313,8 @@ button,input,select,textarea{touch-action:manipulation}
       <div class="modern-top">
         <div class="month-pill">📅 <select id="fMes" onchange="render()" style="border:0;background:transparent;font-weight:900;color:#102b55"></select></div>
         <button class="privacy-pill" onclick="toggleValues()">👁️ <span id="privacyTxt">Ocultar valores</span></button>
-        <div class="salary-pill"><small>📅 Disponível até o próximo salário</small><b id="disponivel" class="money-value">R$ 0,00</b><small id="proximoSalario">Calculando...</small></div>
-        <div class="next-salary-box">📅 Próximos salários<br><span id="nextSalarySummary">05 e 20</span></div>
+        <div class="salary-pill"><small>📅 Saldo após contas pendentes</small><b id="disponivel" class="money-value">R$ 0,00</b><small id="proximoSalario">Calculando...</small></div>
+        <div class="next-salary-box">📅 Contas a vencer<br><span id="nextSalarySummary">Calculando…</span></div>
         <div class="profile-pill">AM</div>
       </div>
       <section class="cards">
@@ -329,6 +327,42 @@ button,input,select,textarea{touch-action:manipulation}
         <div class="card legacy-secondary"><strong id="itau">R$ 0,00</strong></div><div class="card legacy-secondary"><strong id="uber">R$ 0,00</strong></div>
         <div class="card legacy-secondary"><strong id="vencidas">0</strong></div><div class="card legacy-secondary"><strong id="proximas">0</strong></div><div class="card legacy-secondary"><strong id="pendFuturas">R$ 0,00</strong></div>
         <div class="card legacy-secondary"><strong id="budgetAlert">Tudo certo</strong><div id="budgetAlertTxt"></div></div><div class="card legacy-secondary"><strong id="attentionCount">0</strong><div id="attentionTxt"></div></div>
+      </section>
+      <section id="workPlan" style="background:#fff;border:1px solid #dbe3ed;border-radius:16px;padding:16px;margin:14px 0">
+        <h3 style="margin:0 0 8px">🚗 Meu Planejamento Mensal</h3>
+        <p style="margin:0 0 12px;color:#64748b;font-size:13px">Meta estimada para cobrir despesas pendentes. Não é lucro líquido nem saldo bancário.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:18px">
+          <div><small>Contas pendentes do mês</small><div><strong id="planPending">R$ 0,00</strong></div></div>
+          <div><small>Dias úteis restantes (seg–sex)</small><div><strong id="planDays">0</strong></div></div>
+          <div><small>Meta mínima diária estimada</small><div><strong id="planDaily">R$ 0,00</strong></div></div>
+          <div><small>Ganhos Uber lançados no mês</small><div><strong id="planUber">R$ 0,00</strong></div></div>
+        </div>
+        <p id="planNote" style="margin:12px 0 0;font-size:13px;color:#475569"></p>
+      </section>
+      <section style="background:#fff;border:1px solid #dbe3ed;border-radius:16px;padding:16px;margin:0 0 14px">
+        <h3 style="margin:0 0 6px">🔎 Conciliação bancária — fotografia de 09/10/2026</h3>
+        <p style="font-size:12px;color:#64748b;margin:0 0 12px">Valores confirmados no extrato. Não são lançamentos e não alteram a sincronização. Compare antes de ajustar o histórico.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:12px">
+          <div><strong>Uber Conta</strong><div>Banco: <b>R$ 512,98</b></div><div>Financeiro: <b id="recUberLedger">—</b></div><div>Diferença a conferir: <b id="recUberDiff">—</b></div></div>
+          <div><strong>Itaú</strong><div>Banco: <b>-R$ 715,39</b></div><div>Financeiro: <b id="recItauLedger">—</b></div><div>Diferença a conferir: <b id="recItauDiff">—</b></div></div>
+          <div><strong>Cheque especial no extrato</strong><div>Limite: <b>R$ 1.250,00</b></div><div>Usado: <b>R$ 715,39</b></div><div>Restante: <b>R$ 534,61</b></div></div>
+        </div>
+        <p style="font-size:12px;color:#9a3412;margin:10px 0 0">Atenção: os números de referência são uma fotografia do dia 09/10; não representam automaticamente o saldo atual após novos lançamentos.</p>
+      </section>
+      <section id="itauOverdraft" style="background:#fff;border:1px solid #dbe3ed;border-radius:16px;padding:15px;margin:0 0 14px">
+        <h3 style="margin:0 0 10px">🏦 Itaú — cheque especial <span style="font-size:12px;color:#64748b;font-weight:normal">(limite não é receita)</span></h3>
+        <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:12px">
+          <label style="font-size:12px">Limite contratado (R$)<input id="odLimit" type="number" min="0" step="0.01" value="1250" style="display:block;width:145px;padding:8px;border:1px solid #cbd5e1;border-radius:8px" onchange="saveOverdraftLimit()"></label>
+          <button class="iconbtn" onclick="saveOverdraftLimit()">Salvar limite</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px">
+          <div><small>Saldo Itaú calculado</small><div><strong id="odBalance">—</strong></div></div>
+          <div><small>Limite utilizado</small><div><strong id="odUsed">—</strong></div></div>
+          <div><small>Limite restante</small><div><strong id="odAvailable">—</strong></div></div>
+          <div><small>Percentual utilizado</small><div><strong id="odPercent">—</strong></div></div>
+        </div>
+        <div style="height:9px;border-radius:10px;background:#e2e8f0;overflow:hidden;margin-top:12px"><div id="odBar" style="height:100%;background:#f97316;width:0%"></div></div>
+        <p id="odMessage" style="font-size:12px;color:#64748b;margin:9px 0 0">Os valores acompanham o saldo calculado pelos lançamentos. Juros e IOF precisam ser registrados separadamente.</p>
       </section>
       <div class="bank-strip"><div class="bank-strip-head"><h3>🏦 Saldos por banco/conta</h3><button class="iconbtn" onclick="openBanks()">⚙️ Gerenciar bancos</button></div><div class="bank-cards" id="homeBankCards"></div></div>
       <div id="homeInsights"><div class="insight-card"><h3>Lançamentos recentes</h3><div id="homeRecent"></div></div><div class="insight-card"><h3>🔔 Contas a vencer (próximos 7 dias)</h3><div id="homeDue"></div></div></div>
@@ -526,19 +560,19 @@ button,input,select,textarea{touch-action:manipulation}
 <dialog id="fixedDlg">
 <div class="modal">
   <h2>📌 Contas Fixas</h2>
-  <p style="color:#6b7280;margin-top:-6px">Cadastre aqui as despesas que costumam existir todo mês. A lista fica salva. Informe o valor e escolha se paga no dia 05, dia 20 ou em outro dia.</p>
+  <p style="color:#6b7280;margin-top:-6px">Escolha a data no calendário. O sistema repetirá o mesmo dia nos meses seguintes; em meses mais curtos, usará o último dia.</p>
   <div class="dash-grid" style="margin:12px 0 16px">
-    <div class="dash-box"><small>📅 Total dia 05</small><strong id="fixedTotal05">R$ 0,00</strong></div>
-    <div class="dash-box"><small>📅 Total dia 20</small><strong id="fixedTotal20">R$ 0,00</strong></div>
+    <div class="dash-box"><small>📅 Contas até dia 15</small><strong id="fixedTotal05">R$ 0,00</strong></div>
+    <div class="dash-box"><small>📅 Contas após dia 15</small><strong id="fixedTotal20">R$ 0,00</strong></div>
     <div class="dash-box"><small>💰 Total geral</small><strong id="fixedTotalGeral">R$ 0,00</strong></div>
   </div>
-  <div class="fixed-head"><span>Conta</span><span>Valor</span><span>Pagar dia</span><span>Categoria</span><span>Banco</span><span></span></div>
+  <div class="fixed-head"><span>Conta</span><span>Valor</span><span>Vencimento mensal</span><span>Categoria</span><span>Banco</span><span></span></div>
   <div id="fixedList" class="fixed-list"></div>
   <div class="modal-actions" style="justify-content:space-between">
     <button type="button" class="income" onclick="addFixed()">＋ Acrescentar conta</button>
     <button type="button" class="cancel" onclick="fixedDlg.close()">Fechar</button>
   </div>
-  <div class="note">Use “Gerar pendências do mês” para criar os lançamentos das contas fixas que ainda não foram lançadas naquele mês.</div>
+  <div class="note">A data escolhida define o dia mensal. Para o dia 31, fevereiro usará 28 ou 29. “Gerar pendências do mês” não deve ser usado novamente para contas já lançadas.</div>
   <button type="button" class="save" style="width:100%;margin-top:12px" onclick="generateFixed()">Gerar pendências do mês</button>
 </div>
 </dialog>
@@ -636,7 +670,7 @@ const BUDGET_KEY='meu_financeiro_limites_v1';
 const BANK_KEY='meu_financeiro_bancos_v1';
 let syncReady=false, syncRevision=0, syncDirty=false, syncSaving=false, syncTimer=null, syncConflict=false;
 function setAppData(key,value){localStorage.setItem(key,value);if(syncReady){syncDirty=true;scheduleSync()}}
-function syncSnapshot(){return {lancamentos:items,contasFixas:fixed,metaReserva:reserveGoal,limites:budgets,bancos:banks}}
+function syncSnapshot(){return {lancamentos:items,contasFixas:fixed,metaReserva:reserveGoal,limites:budgets,bancos:banks,limiteChequeItau:Number(localStorage.getItem('mf_itau_cheque_limite_v1')||1250)}}
 function syncNotice(message, action=''){
  const el=document.getElementById('syncNotice');
  el.innerHTML=`<span>${message}</span>${action}`;
@@ -647,7 +681,7 @@ function applyCloud(data){
  fixed=Array.isArray(data.contasFixas)?data.contasFixas:[];
  budgets=Array.isArray(data.limites)?data.limites:[];
  banks=Array.isArray(data.bancos)?data.bancos:['Itaú','Uber Conta'];
- reserveGoal=data.metaReserva||reserveGoal;
+ reserveGoal=data.metaReserva||reserveGoal; if(Number.isFinite(Number(data.limiteChequeItau)))localStorage.setItem('mf_itau_cheque_limite_v1',String(data.limiteChequeItau));
  localStorage.setItem(KEY,JSON.stringify(items));
  localStorage.setItem(FIXED_KEY,JSON.stringify(fixed));
  localStorage.setItem(BUDGET_KEY,JSON.stringify(budgets));
@@ -836,20 +870,8 @@ function openSalary(day){
  $('formTitle').textContent=`Salário previsto - dia ${String(day).padStart(2,'0')}`;
 }
 
-function generateSalaries(){
- const ym=$('fMes').value||today().slice(0,7);
- let added=0;
- [5,20].forEach(day=>{
-   const dd=String(day).padStart(2,'0'), date=`${ym}-${dd}`;
-   const exists=items.some(x=>x.categoria==='Salário' && x.descricao===`Salário - dia ${dd}` && (x.vencimento||x.data).startsWith(ym));
-   if(!exists){
-     items.push({id:newId(),tipo:'Receita',data:date,descricao:`Salário - dia ${dd}`,categoria:'Salário',banco:(banks.includes('Itaú')?'Itaú':defaultBank()),valor:0,status:'Pendente',vencimento:date,forma:'Transferência',parcela:'',recorrente:'Não',obs:'Salário previsto'});
-     added++;
-   }
- });
- persist();
- alert(added?`${added} salário(s) previsto(s) criado(s). Clique em Editar para informar o valor. Quando receber, use o botão "Recebi".`:'Os salários dos dias 05 e 20 já estão previstos neste mês.');
-}
+function generateSalaries(){alert('Previsões automáticas de salário CLT desativadas. Registre somente receitas efetivamente previstas.');}
+
 function addMonths(dateStr, n){
  const [y,m,d]=dateStr.split('-').map(Number);
  const target=new Date(y,m-1+n,1,12);
@@ -928,6 +950,7 @@ function save(e){
  const id=$('editId').value||newId();
  const i=items.findIndex(x=>x.id===id);
  let obj={...(i>=0?items[i]:{}),id,tipo:$('tipo').value,data:$('data').value,descricao:$('descricao').value,categoria:$('categoria').value,banco:$('banco').value,valor:+$('valor').value,status:$('status').value,vencimento:$('vencimento').value,forma:$('forma').value,parcela:$('parcela').value,recorrente:$('recorrente').value,obs:$('obs').value};
+ if(obj.status==='Pendente'&&!obj.vencimento){alert('Informe a data de vencimento para lançamentos pendentes.');$('vencimento').focus();return;}
  let plan;
  try{plan=mfPlanInstallments(obj,i>=0?items[i]:null,items);}catch(error){alert(error.message);return;}
  obj=plan.entry;
@@ -951,7 +974,7 @@ function save(e){
  persist();dlg.close();
  if(plan.added)alert(`${plan.added} parcela(s) futura(s) criada(s) como Pendentes. ${editing?'O valor das parcelas já salvas foi mantido.':'O valor total foi dividido entre as parcelas, preservando o total da compra.'}`);
 }
-function edit(id){
+function edit(id){if(items.find(x=>x.id===id)?.tipo==='Ajuste'){alert('Este é um ajuste histórico de conciliação, não uma receita ou despesa. Para revisar, use um novo backup.');return;}
  const x=items.find(a=>a.id===id);if(!x)return;$('editId').value=x.id;$('deleteCurrentBtn').style.display='inline-block';$('formTitle').textContent='Editar lançamento';
  ['tipo','data','descricao','categoria','banco','valor','status','vencimento','forma','parcela','recorrente','obs'].forEach(k=>$(k).value=x[k]??(k==='recorrente'?'Não':''));
  mfUpdateInstallmentLabel();
@@ -1005,9 +1028,22 @@ function managerEdit(id){
 }
 function saveFixed(){setAppData(FIXED_KEY,JSON.stringify(fixed));renderFixed()}
 function openFixed(){renderFixed();fixedDlg.showModal()}
+function fixedCalendarDate(day){
+ const n=Number(day);if(!Number.isInteger(n)||n<1||n>31)return '';
+ const ym=$('fMes').value||today().slice(0,7);
+ const [y,m]=ym.split('-').map(Number);
+ const last=new Date(y,m,0).getDate();
+ return `${ym}-${String(Math.min(n,last)).padStart(2,'0')}`;
+}
+function updateFixedCalendar(i,date){
+ if(!date){fixed[i].dia='';saveFixed();return;}
+ const n=Number(date.slice(-2));
+ if(!Number.isInteger(n)||n<1||n>31){alert('Escolha uma data válida.');return;}
+ fixed[i].dia=n;saveFixed();
+}
 function renderFixed(){
- const t05=fixed.filter(x=>String(x.dia)==='5').reduce((a,x)=>a+(+x.valor||0),0);
- const t20=fixed.filter(x=>String(x.dia)==='20').reduce((a,x)=>a+(+x.valor||0),0);
+ const t05=fixed.filter(x=>+x.dia>=1&&+x.dia<=15).reduce((a,x)=>a+(+x.valor||0),0);
+ const t20=fixed.filter(x=>+x.dia>=16&&+x.dia<=31).reduce((a,x)=>a+(+x.valor||0),0);
  const tg=fixed.reduce((a,x)=>a+(+x.valor||0),0);
  if($('fixedTotal05'))$('fixedTotal05').textContent=brl(t05);
  if($('fixedTotal20'))$('fixedTotal20').textContent=brl(t20);
@@ -1016,19 +1052,12 @@ function renderFixed(){
  box.innerHTML=fixed.length?fixed.map((x,i)=>`<div class="fixed-row">
    <input class="wide" value="${esc(x.nome)}" onchange="fixed[${i}].nome=this.value;saveFixed()" placeholder="Nome da conta">
    <input type="number" min="0" step="0.01" value="${+x.valor||''}" onchange="fixed[${i}].valor=+this.value;saveFixed()" placeholder="R$">
-   <select onchange="fixed[${i}].dia=this.value;saveFixed()">
-     <option value="" ${!x.dia?'selected':''}>Escolher</option>
-     <option value="5" ${String(x.dia)==='5'?'selected':''}>05</option>
-     <option value="20" ${String(x.dia)==='20'?'selected':''}>20</option>
-     ${![5,20,'5','20',''].includes(x.dia)&&x.dia?`<option value="${x.dia}" selected>${String(x.dia).padStart(2,'0')}</option>`:''}
-     <option value="outro">Outro</option>
-   </select>
+   <input type="date" aria-label="Data de vencimento mensal" title="Selecione uma data; somente o dia será repetido a cada mês" value="${fixedCalendarDate(x.dia)}" onchange="updateFixedCalendar(${i},this.value)" />
    <select onchange="fixed[${i}].categoria=this.value;saveFixed()">
     ${['Moradia','Alimentação','Transporte','Combustível','Saúde','Lazer','Assinaturas','Impostos','Outras Despesas'].map(v=>`<option ${x.categoria===v?'selected':''}>${v}</option>`).join('')}
    </select>
    <select onchange="fixed[${i}].banco=this.value;saveFixed()">${bankOptions(x.banco||'')}</select>
    <button class="iconbtn danger" onclick="removeFixed(${i})">Excluir</button>
-   ${x.dia==='outro'?`<div class="wide" style="grid-column:1/-1;display:flex;gap:8px;align-items:center"><label>Outro dia:</label><input type="number" min="1" max="31" style="max-width:110px" onchange="fixed[${i}].dia=+this.value;saveFixed()" placeholder="1 a 31"></div>`:''}
  </div>`).join(''):'<div class="empty">Nenhuma conta fixa cadastrada.</div>';
 }
 function addFixed(){
@@ -1250,17 +1279,49 @@ function renderHomeAnalytics(){
  const mx=Math.max(1,...vals.flatMap(v=>[v.inc,v.out])); if($('homeBarChart'))$('homeBarChart').innerHTML=vals.map(v=>`<div class="bar-month"><i class="bar in" title="Entradas ${brl(v.inc)}" style="height:${Math.max(2,v.inc/mx*145)}px"></i><i class="bar out" title="Saídas ${brl(v.out)}" style="height:${Math.max(2,v.out/mx*145)}px"></i><span class="bar-label">${v.m.label}</span></div>`).join('');
  const cats={};items.filter(x=>x.tipo==='Despesa'&&x.categoria!=='Transferência'&&(x.data||'').startsWith(ym)).forEach(x=>cats[x.categoria||'Outros']=(cats[x.categoria||'Outros']||0)+x.valor);const cr=Object.entries(cats).sort((a,b)=>b[1]-a[1]).slice(0,6),ct=cr.reduce((a,x)=>a+x[1],0)||1;if($('homeCategories'))$('homeCategories').innerHTML=cr.length?cr.map(([n,v])=>`<div class="cat-row"><span>${esc(n)}</span><b>${Math.round(v/ct*100)}%</b><div class="cat-track"><div class="cat-fill" style="width:${v/ct*100}%"></div></div></div>`).join(''):'<small>Sem despesas neste mês.</small>';
  const reserveTotal=items.filter(x=>x.tipo==='Reserva').reduce((a,x)=>a+x.valor,0),total=reserveGoal.total||0,pct=total?Math.min(100,reserveTotal/total*100):0,missing=Math.max(0,total-reserveTotal);if($('homeGoalRing'))$('homeGoalRing').style.setProperty('--goal',pct+'%');if($('homeGoalPct'))$('homeGoalPct').textContent=Math.round(pct)+'%';if($('homeGoalValue'))$('homeGoalValue').textContent=brl(reserveTotal);if($('homeGoalTotal'))$('homeGoalTotal').textContent=total?`de ${brl(total)}`:'Meta não definida';if($('homeGoalMissing'))$('homeGoalMissing').textContent=total?(missing?`🏆 Falta ${brl(missing)} para atingir sua meta`:'🏆 Meta atingida!'):'Defina sua meta de reserva';
- const sal5=items.filter(x=>x.tipo==='Receita'&&x.categoria==='Salário'&&(x.data||'').startsWith(ym)&&new Date(x.data+'T12:00:00').getDate()===5).reduce((a,x)=>a+x.valor,0),sal20=items.filter(x=>x.tipo==='Receita'&&x.categoria==='Salário'&&(x.data||'').startsWith(ym)&&new Date(x.data+'T12:00:00').getDate()===20).reduce((a,x)=>a+x.valor,0);if($('nextSalarySummary'))$('nextSalarySummary').innerHTML=`05: ${brl(sal5)} &nbsp;•&nbsp; 20: ${brl(sal20)}`;
+ const pendingDue=items.filter(x=>x.tipo==='Despesa'&&x.status==='Pendente'&&(x.vencimento||x.data||'').startsWith(ym)).sort((a,b)=>(a.vencimento||a.data).localeCompare(b.vencimento||b.data));if($('nextSalarySummary'))$('nextSalarySummary').textContent=pendingDue.length?`${pendingDue.length} conta(s) • próxima: ${(pendingDue[0].vencimento||pendingDue[0].data).split('-').reverse().join('/')}`:'Nenhuma pendência neste mês';
 }
 function renderModernHome(){
  const ym=$('fMes').value||today().slice(0,7), settled=items.filter(x=>x.status!=='Pendente');
- const net=a=>a.reduce((s,x)=>s+(x.tipo==='Receita'?x.valor:x.tipo==='Despesa'?-x.valor:x.tipo==='Reserva'?-x.valor:0),0);
+ const net=a=>a.reduce((s,x)=>s+(x.tipo==='Receita'?x.valor:x.tipo==='Despesa'?-x.valor:x.tipo==='Reserva'?-x.valor:x.tipo==='Ajuste'?Number(x.valor||0):0),0);
  const pendMonth=items.filter(x=>x.status==='Pendente'&&x.tipo==='Despesa'&&(x.vencimento||x.data||'').startsWith(ym)).reduce((a,x)=>a+x.valor,0);
  const proj=net(settled)-pendMonth; if($('projectedHome')){$('projectedHome').textContent=brl(proj);$('projectedHome').className='money-value '+(proj>=0?'money-pos':'money-neg')}
  const bankBox=$('homeBankCards'); if(bankBox){const rows=getBanks().map(b=>({b,s:net(settled.filter(x=>x.banco===b))}));bankBox.innerHTML=rows.map(r=>`<div class="bank-mini">${bankBadge(r.b)}<div><b>${esc(r.b)}</b><strong class="money-value">${brl(r.s)}</strong></div></div>`).join('')+`<div class="bank-mini bank-add" onclick="openBanks()">➕ Adicionar nova conta</div>`}
- const recent=items.filter(x=>(x.data||'').startsWith(ym)).sort((a,b)=>b.data.localeCompare(a.data)).slice(0,5); if($('homeRecent'))$('homeRecent').innerHTML=recent.length?recent.map(x=>`<div class="recent-row"><span>${x.data.split('-').reverse().join('/').slice(0,5)}</span><span>${bankBadge(x.banco)} <b>${esc(x.descricao)}</b><br><small>${esc(x.banco)} • ${esc(x.categoria)}</small></span><span class="money-value ${x.tipo==='Receita'?'money-pos':'money-neg'}">${x.tipo==='Receita'?'+ ':'- '}${brl(x.valor)}</span></div>`).join(''):'<small>Nenhum lançamento neste mês.</small>';
+ const recent=items.filter(x=>(x.data||'').startsWith(ym)).sort((a,b)=>b.data.localeCompare(a.data)).slice(0,5); if($('homeRecent'))$('homeRecent').innerHTML=recent.length?recent.map(x=>`<div class="recent-row"><span>${x.data.split('-').reverse().join('/').slice(0,5)}</span><span>${bankBadge(x.banco)} <b>${esc(x.descricao)}</b><br><small>${esc(x.banco)} • ${esc(x.categoria)}</small></span><span class="money-value ${x.tipo==='Receita'?'money-pos':'money-neg'}">${x.tipo==='Ajuste'?(x.valor>=0?'+ ':'− '):x.tipo==='Receita'?'+ ':'- '}${brl(Math.abs(x.valor))}</span></div>`).join(''):'<small>Nenhum lançamento neste mês.</small>';
  const now=new Date();now.setHours(0,0,0,0);const in7=new Date(now);in7.setDate(in7.getDate()+7);const due=items.filter(x=>x.status==='Pendente'&&x.tipo==='Despesa'&&x.vencimento&&parseDate(x.vencimento)>=now&&parseDate(x.vencimento)<=in7).sort((a,b)=>a.vencimento.localeCompare(b.vencimento)).slice(0,5);if($('homeDue'))$('homeDue').innerHTML=due.length?due.map(x=>`<div class="due-row"><span>${x.vencimento.split('-').reverse().join('/').slice(0,5)}</span><span>${bankBadge(x.banco)} <b>${esc(x.descricao)}</b><br><small>${esc(x.banco)}</small></span><span class="money-value money-neg">${brl(x.valor)}</span></div>`).join(''):'<small>Nenhuma conta vencendo nos próximos 7 dias.</small>';
  renderHomeAnalytics();
+}
+function saveOverdraftLimit(){
+ const el=$('odLimit');if(!el)return;
+ const v=Number(el.value);if(!Number.isFinite(v)||v<0){alert('Informe um limite válido.');return;}
+ try{localStorage.setItem('mf_itau_cheque_limite_v1',String(v));if(syncReady){syncDirty=true;scheduleSync();}}catch(e){}
+ renderOverdraft();
+}
+function renderReconciliationReference(){
+ const netBank=b=>items.filter(x=>x.banco===b&&x.status!=='Pendente').reduce((sum,x)=>sum+(x.tipo==='Receita'?Number(x.valor||0):x.tipo==='Despesa'||x.tipo==='Reserva'?-Number(x.valor||0):x.tipo==='Ajuste'?Number(x.valor||0):0),0);
+ const uber=netBank('Uber Conta'),itau=netBank('Itaú');
+ $('recUberLedger').textContent=brl(uber);$('recItauLedger').textContent=brl(itau);
+ $('recUberDiff').textContent=brl(512.98-uber);$('recItauDiff').textContent=brl(-715.39-itau);
+}
+function renderOverdraft(){
+ const limitEl=$('odLimit');if(!limitEl)return;
+ let limit=1250;try{const raw=localStorage.getItem('mf_itau_cheque_limite_v1');if(raw!==null&&Number.isFinite(+raw)&&+raw>=0)limit=+raw;}catch(e){}
+ if(document.activeElement!==limitEl)limitEl.value=limit;
+ const balance=items.filter(x=>x.banco==='Itaú'&&x.status!=='Pendente').reduce((v,x)=>v+(x.tipo==='Receita'?x.valor:x.tipo==='Despesa'?-x.valor:x.tipo==='Reserva'?-x.valor:x.tipo==='Ajuste'?Number(x.valor||0):0),0);
+ const used=Math.max(0,-balance),available=Math.max(0,limit-used),pct=limit>0?100*used/limit:0;
+ $('odBalance').textContent=brl(balance);$('odUsed').textContent=brl(used);$('odAvailable').textContent=brl(available);
+ $('odPercent').textContent=limit>0?pct.toFixed(1).replace('.',',')+'%':'—';
+ $('odBar').style.width=Math.min(100,pct)+'%';
+ $('odMessage').textContent=used>limit?'Atenção: o saldo negativo supera o limite informado. Confira o extrato.':used>0?'Cheque especial em uso. O limite restante é crédito do banco, não lucro nem receita.':'Cheque especial não utilizado. Valores dependem da conciliação dos lançamentos.';
+}
+function renderWorkPlan(){
+ const ym=$('fMes').value||today().slice(0,7), now=today(),[year,month]=ym.split('-').map(Number);
+ const pend=items.filter(x=>x.tipo==='Despesa'&&x.status==='Pendente'&&(x.vencimento||x.data||'').startsWith(ym)).reduce((sum,x)=>sum+(+x.valor||0),0);
+ const last=new Date(year,month,0).getDate();let days=0;
+ for(let d=1;d<=last;d++){const day=`${ym}-${String(d).padStart(2,'0')}`,week=new Date(year,month-1,d).getDay();if(day>=now&&week!==0&&week!==6)days++;}
+ const uber=items.filter(x=>x.tipo==='Receita'&&x.status!=='Pendente'&&(x.data||'').startsWith(ym)&&(/uber/i.test((x.categoria||'')+' '+(x.descricao||'')))).reduce((sum,x)=>sum+(+x.valor||0),0);
+ $('planPending').textContent=brl(pend);$('planDays').textContent=days;$('planDaily').textContent=days?brl(pend/days):'—';$('planUber').textContent=brl(uber);
+ $('planNote').textContent=days?`Estimativa: ${brl(pend)} ÷ ${days} dias úteis. Não inclui despesas operacionais futuras nem valores já pagos.`:'Sem dias úteis restantes neste mês; revise as pendências.';
 }
 function render(){
  refreshBankUI();
@@ -1273,7 +1334,7 @@ function render(){
  }).join(''):`<tr><td colspan="8" class="empty">Nenhum lançamento neste mês.</td></tr>`;
 
  const settled=items.filter(x=>x.status!=='Pendente');
- const net=a=>a.reduce((s,x)=>s+(x.tipo==='Receita'?x.valor:x.tipo==='Despesa'?-x.valor:x.tipo==='Reserva'?-x.valor:0),0);
+ const net=a=>a.reduce((s,x)=>s+(x.tipo==='Receita'?x.valor:x.tipo==='Despesa'?-x.valor:x.tipo==='Reserva'?-x.valor:x.tipo==='Ajuste'?Number(x.valor||0):0),0);
  const reserveTotal=items.filter(x=>x.tipo==='Reserva').reduce((a,x)=>a+x.valor,0);
  $('saldo').textContent=brl(net(settled));$('itau').textContent=brl(net(settled.filter(x=>x.banco==='Itaú')));$('uber').textContent=brl(net(settled.filter(x=>x.banco==='Uber Conta')));$('reserva').textContent=brl(reserveTotal);
  $('receitas').textContent=brl(items.filter(x=>x.tipo==='Receita'&&x.data.startsWith(ym)&&x.categoria!=='Transferência').reduce((s,x)=>s+x.valor,0));
@@ -1286,9 +1347,9 @@ function render(){
  const overdue=pendMes.filter(x=>x.vencimento&&parseDate(x.vencimento)<now);$('vencidas').textContent=overdue.length;
  const in7=new Date(now);in7.setDate(in7.getDate()+7);$('proximas').textContent=pend.filter(x=>x.vencimento&&parseDate(x.vencimento)>=now&&parseDate(x.vencimento)<=in7).length;
 
- const ns=nextSalaryDate(), before=pend.filter(x=>x.tipo==='Despesa'&&x.vencimento&&parseDate(x.vencimento)<=ns).reduce((a,x)=>a+x.valor,0);
- const available=Math.max(0,net(settled)-before);
- $('disponivel').textContent=brl(available);$('proximoSalario').textContent=`Próximo salário: ${ns.toLocaleDateString('pt-BR')} • contas até lá: ${brl(before)}`;
+ const before=pend.filter(x=>x.tipo==='Despesa').reduce((a,x)=>a+x.valor,0);
+ const available=net(settled)-before;
+ $('disponivel').textContent=brl(available);$('proximoSalario').textContent=`Saldo estimado após ${brl(before)} em pendências (todas as datas)`;
 
  const remaining=Math.max(0,(reserveGoal.total||0)-reserveTotal);
  const baseSuggestion=reserveGoal.mode==='fixed'?(reserveGoal.fixed||0):(available*((reserveGoal.percent||10)/100));
@@ -1317,17 +1378,17 @@ function render(){
  const attentions=getAttentions();
  $('attentionCount').textContent=attentions.length;
  $('attentionTxt').textContent=attentions.length?attentions.slice(0,2).map(x=>x.text).join(' • '):'Nenhuma atenção no momento.';
- renderModernHome();
+ renderWorkPlan();renderOverdraft();renderReconciliationReference();renderModernHome();
 }
 function backupJSON(){
- const blob=new Blob([JSON.stringify({versao:5,data:new Date().toISOString(),lancamentos:items,contasFixas:fixed,metaReserva:reserveGoal,limites:budgets,bancos:banks},null,2)],{type:'application/json'});
+ const blob=new Blob([JSON.stringify({versao:5,data:new Date().toISOString(),lancamentos:items,contasFixas:fixed,metaReserva:reserveGoal,limites:budgets,bancos:banks,limiteChequeItau:Number(localStorage.getItem('mf_itau_cheque_limite_v1')||1250)},null,2)],{type:'application/json'});
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`backup-meu-financeiro-${today()}.json`;a.click();URL.revokeObjectURL(a.href);
 }
 function restoreJSON(e){
  const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result),arr=Array.isArray(d)?d:d.lancamentos;if(!Array.isArray(arr))throw 0;if(confirm(`Restaurar ${arr.length} lançamentos? Isso substituirá os dados atuais.`)){items=arr;if(Array.isArray(d.contasFixas)){
  fixed=d.contasFixas.map(x=>{if((!x.valor||+x.valor===0)&&+x.dia>31){x.valor=+x.dia;x.dia='';}if(x.valor==null)x.valor=0;return x;});
  setAppData(FIXED_KEY,JSON.stringify(fixed));
-}if(d.metaReserva){reserveGoal=d.metaReserva;setAppData(GOAL_KEY,JSON.stringify(reserveGoal));}if(Array.isArray(d.limites)){budgets=d.limites;setAppData(BUDGET_KEY,JSON.stringify(budgets));}if(Array.isArray(d.bancos)){banks=[...new Set(d.bancos.map(b=>String(b).trim()).filter(Boolean))];setAppData(BANK_KEY,JSON.stringify(banks));}persist();alert('Backup restaurado com sucesso.')}}catch{alert('Arquivo de backup inválido.')}e.target.value=''};r.readAsText(f);
+}if(Number.isFinite(Number(d.limiteChequeItau)))localStorage.setItem('mf_itau_cheque_limite_v1',String(d.limiteChequeItau));if(d.metaReserva){reserveGoal=d.metaReserva;setAppData(GOAL_KEY,JSON.stringify(reserveGoal));}if(Array.isArray(d.limites)){budgets=d.limites;setAppData(BUDGET_KEY,JSON.stringify(budgets));}if(Array.isArray(d.bancos)){banks=[...new Set(d.bancos.map(b=>String(b).trim()).filter(Boolean))];setAppData(BANK_KEY,JSON.stringify(banks));}persist();alert('Backup restaurado com sucesso.')}}catch{alert('Arquivo de backup inválido.')}e.target.value=''};r.readAsText(f);
 }
 function exportCSV(){
  const cols=['data','tipo','descricao','categoria','banco','valor','status','dataBaixa','vencimento','forma','parcela','recorrente','obs'];
