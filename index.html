@@ -328,6 +328,21 @@ button,input,select,textarea{touch-action:manipulation}
         <div class="card legacy-secondary"><strong id="vencidas">0</strong></div><div class="card legacy-secondary"><strong id="proximas">0</strong></div><div class="card legacy-secondary"><strong id="pendFuturas">R$ 0,00</strong></div>
         <div class="card legacy-secondary"><strong id="budgetAlert">Tudo certo</strong><div id="budgetAlertTxt"></div></div><div class="card legacy-secondary"><strong id="attentionCount">0</strong><div id="attentionTxt"></div></div>
       </section>
+      <section id="profitPanel" style="background:#fff;border:1px solid #dbe3ed;border-radius:16px;padding:16px;margin:14px 0">
+        <h3 style="margin:0 0 7px">🚗 Meu trabalho, carro e contas pessoais</h3>
+        <p style="margin:0 0 12px;color:#64748b;font-size:13px">Resumo calculado com os lançamentos sincronizados do mês selecionado. Não modifica seus lançamentos.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px">
+          <div style="padding:12px;border-radius:12px;background:#f1f5f9"><small>Recebido em Uber e viagens</small><div><strong id="profitGross">—</strong></div></div>
+          <div style="padding:12px;border-radius:12px;background:#f1f5f9"><small>Custos do carro já pagos</small><div><strong id="profitFuel">—</strong></div></div>
+          <div style="padding:12px;border-radius:12px;background:#ecfdf5"><small>Resultado parcial do trabalho</small><div><strong id="profitPartial">—</strong></div></div>
+          <div style="padding:12px;border-radius:12px;background:#f1f5f9"><small>Despesas pessoais já pagas</small><div><strong id="profitPersonal">—</strong></div></div>
+          <div style="padding:12px;border-radius:12px;background:#f1f5f9"><small>Outras despesas a conferir</small><div><strong id="profitOther">—</strong></div></div>
+          <div style="padding:12px;border-radius:12px;background:#eff6ff"><small>Saldo bancário (não é lucro)</small><div><strong id="profitCash">—</strong></div></div>
+          <div style="padding:12px;border-radius:12px;background:#fff7ed"><small>Carro ainda a pagar no mês</small><div><strong id="profitCarPending">—</strong></div></div>
+          <div style="padding:12px;border-radius:12px;background:#fff7ed"><small>Contas pessoais a pagar no mês</small><div><strong id="profitPending">—</strong></div></div>
+        </div>
+        <p id="profitExplanation" style="margin:12px 0 0;font-size:13px;color:#475569"></p>
+      </section>
       <section id="workPlan" style="background:#fff;border:1px solid #dbe3ed;border-radius:16px;padding:16px;margin:14px 0">
         <h3 style="margin:0 0 8px">🚗 Meu Planejamento Mensal</h3>
         <p style="margin:0 0 12px;color:#64748b;font-size:13px">Meta estimada para cobrir despesas pendentes. Não é lucro líquido nem saldo bancário.</p>
@@ -340,14 +355,14 @@ button,input,select,textarea{touch-action:manipulation}
         <p id="planNote" style="margin:12px 0 0;font-size:13px;color:#475569"></p>
       </section>
       <section style="background:#fff;border:1px solid #dbe3ed;border-radius:16px;padding:16px;margin:0 0 14px">
-        <h3 style="margin:0 0 6px">🔎 Conciliação bancária — fotografia de 09/10/2026</h3>
+        <h3 style="margin:0 0 6px">🔎 Conciliação bancária — fotografia de 12/10/2026</h3>
         <p style="font-size:12px;color:#64748b;margin:0 0 12px">Valores confirmados no extrato. Não são lançamentos e não alteram a sincronização. Compare antes de ajustar o histórico.</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:12px">
-          <div><strong>Uber Conta</strong><div>Banco: <b>R$ 512,98</b></div><div>Financeiro: <b id="recUberLedger">—</b></div><div>Diferença a conferir: <b id="recUberDiff">—</b></div></div>
+          <div><strong>Uber Conta</strong><div>Banco: <b>R$ 263,63</b></div><div>Financeiro: <b id="recUberLedger">—</b></div><div>Diferença a conferir: <b id="recUberDiff">—</b></div></div>
           <div><strong>Itaú</strong><div>Banco: <b>-R$ 715,39</b></div><div>Financeiro: <b id="recItauLedger">—</b></div><div>Diferença a conferir: <b id="recItauDiff">—</b></div></div>
           <div><strong>Cheque especial no extrato</strong><div>Limite: <b>R$ 1.250,00</b></div><div>Usado: <b>R$ 715,39</b></div><div>Restante: <b>R$ 534,61</b></div></div>
         </div>
-        <p style="font-size:12px;color:#9a3412;margin:10px 0 0">Atenção: os números de referência são uma fotografia do dia 09/10; não representam automaticamente o saldo atual após novos lançamentos.</p>
+        <p style="font-size:12px;color:#9a3412;margin:10px 0 0">Atenção: os números de referência são uma fotografia do dia 12/10; não representam automaticamente o saldo atual após novos lançamentos.</p>
       </section>
       <section id="itauOverdraft" style="background:#fff;border:1px solid #dbe3ed;border-radius:16px;padding:15px;margin:0 0 14px">
         <h3 style="margin:0 0 10px">🏦 Itaú — cheque especial <span style="font-size:12px;color:#64748b;font-weight:normal">(limite não é receita)</span></h3>
@@ -1281,6 +1296,41 @@ function renderHomeAnalytics(){
  const reserveTotal=items.filter(x=>x.tipo==='Reserva').reduce((a,x)=>a+x.valor,0),total=reserveGoal.total||0,pct=total?Math.min(100,reserveTotal/total*100):0,missing=Math.max(0,total-reserveTotal);if($('homeGoalRing'))$('homeGoalRing').style.setProperty('--goal',pct+'%');if($('homeGoalPct'))$('homeGoalPct').textContent=Math.round(pct)+'%';if($('homeGoalValue'))$('homeGoalValue').textContent=brl(reserveTotal);if($('homeGoalTotal'))$('homeGoalTotal').textContent=total?`de ${brl(total)}`:'Meta não definida';if($('homeGoalMissing'))$('homeGoalMissing').textContent=total?(missing?`🏆 Falta ${brl(missing)} para atingir sua meta`:'🏆 Meta atingida!'):'Defina sua meta de reserva';
  const pendingDue=items.filter(x=>x.tipo==='Despesa'&&x.status==='Pendente'&&(x.vencimento||x.data||'').startsWith(ym)).sort((a,b)=>(a.vencimento||a.data).localeCompare(b.vencimento||b.data));if($('nextSalarySummary'))$('nextSalarySummary').textContent=pendingDue.length?`${pendingDue.length} conta(s) • próxima: ${(pendingDue[0].vencimento||pendingDue[0].data).split('-').reverse().join('/')}`:'Nenhuma pendência neste mês';
 }
+function renderProfitPanel(){
+ const ym=$('fMes').value||today().slice(0,7);
+ const paid=items.filter(x=>(x.data||'').startsWith(ym)&&x.status!=='Pendente');
+ const sum=a=>a.reduce((s,x)=>s+Number(x.valor||0),0);
+ const isTransfer=x=>/transfer[êe]ncia/i.test(x.categoria||'')||/transfer[êe]ncia entre contas/i.test(x.descricao||'');
+ const isCar=x=>{
+   const d=((x.descricao||'')+' '+(x.categoria||'')).toLowerCase();
+   return /combust|abastec|gasolina|etanol|ped[aá]gio|estacionamento|lavagem do carro|seguro.*carro|seguro do carro|rastreador|presta[cç][aã]o do carro|manuten[cç][aã]o|ipva|licenciamento|pneu|mec[aâ]nic/.test(d);
+ };
+ const isWorkIncome=x=>{
+   const d=((x.descricao||'')+' '+(x.categoria||'')).toLowerCase();
+   return /uber|corridas|viagem executiva|viagens executivas|michelon.*viagem/.test(d);
+ };
+ const isPersonal=x=>{
+   const d=((x.descricao||'')+' '+(x.categoria||'')).toLowerCase();
+   return /moradia|alimenta|sa[uú]de|academia|lazer|assinatura|roupa|pessoal|pessoais|mercado|dentista|internet|energia|[aá]gua|faxineira|telefone|celular|empr[eé]stimo|consignado/.test(d);
+ };
+ const incomes=paid.filter(x=>x.tipo==='Receita'&&!isTransfer(x)&&isWorkIncome(x));
+ const expenses=paid.filter(x=>x.tipo==='Despesa'&&!isTransfer(x));
+ const car=expenses.filter(isCar),personal=expenses.filter(x=>!isCar(x)&&isPersonal(x));
+ const unknown=expenses.filter(x=>!car.includes(x)&&!personal.includes(x));
+ const pending=items.filter(x=>x.tipo==='Despesa'&&x.status==='Pendente'&&(x.vencimento||x.data||'').startsWith(ym)&&!isTransfer(x));
+ const carPending=pending.filter(isCar), personalPending=pending.filter(x=>!isCar(x));
+ const signed=x=>x.tipo==='Receita'?Number(x.valor||0):x.tipo==='Despesa'||x.tipo==='Reserva'?-Number(x.valor||0):x.tipo==='Ajuste'?Number(x.valor||0):0;
+ const cash=items.filter(x=>x.status!=='Pendente').reduce((s,x)=>s+signed(x),0);
+ $('profitGross').textContent=brl(sum(incomes));
+ $('profitFuel').textContent=brl(sum(car));
+ $('profitPartial').textContent=brl(sum(incomes)-sum(car));
+ $('profitPersonal').textContent=brl(sum(personal));
+ $('profitOther').textContent=brl(sum(unknown));
+ $('profitCash').textContent=brl(cash);
+ $('profitCarPending').textContent=brl(sum(carPending));
+ $('profitPending').textContent=brl(sum(personalPending));
+ $('profitExplanation').textContent='Resultado parcial do trabalho (não é lucro líquido final) = Uber/viagens recebidas menos custos do carro já pagos. A prestação do carro de R$ 1.700 só entra como custo pago quando for baixada; enquanto pendente aparece em “Carro ainda a pagar”. Despesas pessoais são separadas mesmo quando pagas pela Uber Conta. Outras despesas ficam separadas para conferência. Transferências e ajustes históricos não são lucro; o cheque especial não é dinheiro próprio.';
+}
 function renderModernHome(){
  const ym=$('fMes').value||today().slice(0,7), settled=items.filter(x=>x.status!=='Pendente');
  const net=a=>a.reduce((s,x)=>s+(x.tipo==='Receita'?x.valor:x.tipo==='Despesa'?-x.valor:x.tipo==='Reserva'?-x.valor:x.tipo==='Ajuste'?Number(x.valor||0):0),0);
@@ -1289,7 +1339,7 @@ function renderModernHome(){
  const bankBox=$('homeBankCards'); if(bankBox){const rows=getBanks().map(b=>({b,s:net(settled.filter(x=>x.banco===b))}));bankBox.innerHTML=rows.map(r=>`<div class="bank-mini">${bankBadge(r.b)}<div><b>${esc(r.b)}</b><strong class="money-value">${brl(r.s)}</strong></div></div>`).join('')+`<div class="bank-mini bank-add" onclick="openBanks()">➕ Adicionar nova conta</div>`}
  const recent=items.filter(x=>(x.data||'').startsWith(ym)).sort((a,b)=>b.data.localeCompare(a.data)).slice(0,5); if($('homeRecent'))$('homeRecent').innerHTML=recent.length?recent.map(x=>`<div class="recent-row"><span>${x.data.split('-').reverse().join('/').slice(0,5)}</span><span>${bankBadge(x.banco)} <b>${esc(x.descricao)}</b><br><small>${esc(x.banco)} • ${esc(x.categoria)}</small></span><span class="money-value ${x.tipo==='Receita'?'money-pos':'money-neg'}">${x.tipo==='Ajuste'?(x.valor>=0?'+ ':'− '):x.tipo==='Receita'?'+ ':'- '}${brl(Math.abs(x.valor))}</span></div>`).join(''):'<small>Nenhum lançamento neste mês.</small>';
  const now=new Date();now.setHours(0,0,0,0);const in7=new Date(now);in7.setDate(in7.getDate()+7);const due=items.filter(x=>x.status==='Pendente'&&x.tipo==='Despesa'&&x.vencimento&&parseDate(x.vencimento)>=now&&parseDate(x.vencimento)<=in7).sort((a,b)=>a.vencimento.localeCompare(b.vencimento)).slice(0,5);if($('homeDue'))$('homeDue').innerHTML=due.length?due.map(x=>`<div class="due-row"><span>${x.vencimento.split('-').reverse().join('/').slice(0,5)}</span><span>${bankBadge(x.banco)} <b>${esc(x.descricao)}</b><br><small>${esc(x.banco)}</small></span><span class="money-value money-neg">${brl(x.valor)}</span></div>`).join(''):'<small>Nenhuma conta vencendo nos próximos 7 dias.</small>';
- renderHomeAnalytics();
+ renderHomeAnalytics();renderProfitPanel();
 }
 function saveOverdraftLimit(){
  const el=$('odLimit');if(!el)return;
@@ -1301,7 +1351,7 @@ function renderReconciliationReference(){
  const netBank=b=>items.filter(x=>x.banco===b&&x.status!=='Pendente').reduce((sum,x)=>sum+(x.tipo==='Receita'?Number(x.valor||0):x.tipo==='Despesa'||x.tipo==='Reserva'?-Number(x.valor||0):x.tipo==='Ajuste'?Number(x.valor||0):0),0);
  const uber=netBank('Uber Conta'),itau=netBank('Itaú');
  $('recUberLedger').textContent=brl(uber);$('recItauLedger').textContent=brl(itau);
- $('recUberDiff').textContent=brl(512.98-uber);$('recItauDiff').textContent=brl(-715.39-itau);
+ $('recUberDiff').textContent=brl(263.63-uber);$('recItauDiff').textContent=brl(-715.39-itau);
 }
 function renderOverdraft(){
  const limitEl=$('odLimit');if(!limitEl)return;
