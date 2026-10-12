@@ -341,6 +341,19 @@ button,input,select,textarea{touch-action:manipulation}
           <div style="padding:12px;border-radius:12px;background:#fff7ed"><small>Carro ainda a pagar no mês</small><div><strong id="profitCarPending">—</strong></div></div>
           <div style="padding:12px;border-radius:12px;background:#fff7ed"><small>Contas pessoais a pagar no mês</small><div><strong id="profitPending">—</strong></div></div>
         </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:12px">
+          <div style="padding:16px;border:2px solid #0f766e;border-radius:14px;background:#f0fdfa">
+            <small style="font-weight:700">🚗 Lucro estimado após contas do carro</small>
+            <div><strong id="profitAfterCar" style="font-size:clamp(21px,3vw,29px)">—</strong></div>
+            <small>Resultado do trabalho menos custos do carro pagos e pendentes neste mês.</small>
+          </div>
+          <div style="padding:16px;border:2px solid #1d4ed8;border-radius:14px;background:#eff6ff">
+            <small style="font-weight:700">💰 Quanto sobra para mim após pagar as contas</small>
+            <div><strong id="profitAvailable" style="font-size:clamp(21px,3vw,29px)">—</strong></div>
+            <small>Saldo atual das contas menos as despesas pendentes do mês. Não inclui receitas futuras.</small>
+          </div>
+        </div>
+        <p id="profitAvailableNote" style="margin:10px 0 0;font-size:13px;color:#475569"></p>
         <p id="profitExplanation" style="margin:12px 0 0;font-size:13px;color:#475569"></p>
       </section>
       <section id="workPlan" style="background:#fff;border:1px solid #dbe3ed;border-radius:16px;padding:16px;margin:14px 0">
@@ -1329,6 +1342,15 @@ function renderProfitPanel(){
  $('profitCash').textContent=brl(cash);
  $('profitCarPending').textContent=brl(sum(carPending));
  $('profitPending').textContent=brl(sum(personalPending));
+ const afterCar=sum(incomes)-sum(car)-sum(carPending);
+ const available=cash-sum(carPending)-sum(personalPending);
+ $('profitAfterCar').textContent=brl(afterCar);
+ $('profitAvailable').textContent=brl(available);
+ $('profitAfterCar').style.color=afterCar>=0?'#047857':'#b91c1c';
+ $('profitAvailable').style.color=available>=0?'#1d4ed8':'#b91c1c';
+ $('profitAvailableNote').textContent=available<0
+  ?'Atenção: considerando as contas pendentes deste mês, ainda faltam '+brl(-available)+'. Esse valor é uma projeção, não uma dívida nova. Não conte o limite do cheque especial como dinheiro disponível.'
+  :'Este é o valor projetado após pagar as contas pendentes deste mês. Não inclui entradas futuras, gastos ainda não lançados ou limite do cheque especial.';
  $('profitExplanation').textContent='Resultado parcial do trabalho (não é lucro líquido final) = Uber/viagens recebidas menos custos do carro já pagos. A prestação do carro de R$ 1.700 só entra como custo pago quando for baixada; enquanto pendente aparece em “Carro ainda a pagar”. Despesas pessoais são separadas mesmo quando pagas pela Uber Conta. Outras despesas ficam separadas para conferência. Transferências e ajustes históricos não são lucro; o cheque especial não é dinheiro próprio.';
 }
 function renderModernHome(){
