@@ -756,14 +756,11 @@ async function initSync(){
   if(!r.ok)throw new Error('Indisponível');
   const result=await r.json();syncRevision=result.revision;
   if(result.data){
-   const local=syncSnapshot(),remote=result.data;
-   const known=new Set((remote.lancamentos||[]).map(x=>x.id));
-   const additions=local.lancamentos.filter(x=>!known.has(x.id));
-   if(additions.length){
-     const fixedIds=new Set((remote.contasFixas||[]).map(x=>x.id));
-     const merged={...remote,lancamentos:[...(remote.lancamentos||[]),...additions],contasFixas:[...(remote.contasFixas||[]),...local.contasFixas.filter(x=>!fixedIds.has(x.id))],bancos:[...new Set([...(remote.bancos||[]),...local.bancos])]};
-     applyCloud(merged);syncReady=true;syncDirty=true;await flushSync();
-   }else{applyCloud(remote);syncReady=true;syncNotice('✓ Sincronizado com o celular e o PC')}
+   // O servidor é a fonte de verdade quando já existe um backup remoto.
+   // Não ressuscitar lançamentos apagados a partir de cache local antigo.
+   applyCloud(result.data);
+   syncReady=true;
+   syncNotice('✓ Sincronizado com o celular e o PC');
   }else{syncReady=true;syncNotice('Banco pessoal conectado. Restaure o backup antes de começar a usar este endereço.')}
  }catch(e){syncNotice('Sincronização indisponível. Seus dados continuam neste aparelho.');}
 }
