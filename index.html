@@ -356,18 +356,35 @@ button,input,select,textarea{touch-action:manipulation}
         <p id="profitAvailableNote" style="margin:10px 0 0;font-size:13px;color:#475569"></p>
         <p id="profitExplanation" style="margin:12px 0 0;font-size:13px;color:#475569"></p>
       </section>
-      <section id="workPlan" style="background:#fff;border:1px solid #dbe3ed;border-radius:16px;padding:16px;margin:14px 0">
-        <h3 style="margin:0 0 8px">🚗 Meu Planejamento Mensal</h3>
-        <p style="margin:0 0 12px;color:#64748b;font-size:13px">Meta estimada para cobrir despesas pendentes. Não é lucro líquido nem saldo bancário.</p>
-        <div style="display:flex;flex-wrap:wrap;gap:18px">
-          <div><small>Contas pendentes do mês</small><div><strong id="planPending">R$ 0,00</strong></div></div>
-          <div><small>Dias úteis restantes (seg–sex)</small><div><strong id="planDays">0</strong></div></div>
-          <div><small>Meta mínima diária estimada</small><div><strong id="planDaily">R$ 0,00</strong></div></div>
-          <div><small>Ganhos Uber lançados no mês</small><div><strong id="planUber">R$ 0,00</strong></div></div>
+      <section id="workPlan" style="background:#fff;border:2px solid #0f766e;border-radius:16px;padding:16px;margin:14px 0">
+        <h3 style="margin:0 0 8px">🚗 Meta diária Uber — pagar todas as contas</h3>
+        <p style="margin:0 0 12px;color:#64748b;font-size:13px">A Uber sustenta as despesas do carro e pessoais, mesmo quando o pagamento sai do Itaú. Michelon fica separada. Valores previstos não contam como dinheiro recebido.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px">
+          <div><small>Contas ainda a pagar no mês (todos os bancos)</small><div><strong id="planPending">—</strong></div></div>
+          <div><small>Saldo próprio disponível para essas contas</small><div><strong id="planCash">—</strong></div></div>
+          <div><small>Falta financiar</small><div><strong id="planMissing">—</strong></div></div>
+          <div><small>Dias planejados restantes</small><div><strong id="planDays">—</strong></div></div>
+          <div><small>Ganhos Uber já registrados no mês</small><div><strong id="planUber">—</strong></div></div>
+          <div style="background:#ecfdf5;border-radius:12px;padding:10px"><small style="font-weight:700">Meta de faturamento Uber por dia</small><div><strong id="planDaily" style="font-size:26px;color:#047857">—</strong></div></div>
         </div>
+        <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;align-items:center">
+          <label style="font-size:13px">Lucro que desejo guardar neste mês (R$)
+            <input id="planExtraGoal" type="number" min="0" step="50" value="0" style="width:110px;margin-left:6px;padding:7px;border:1px solid #cbd5e1;border-radius:8px" oninput="renderWorkPlan()" onchange="savePlanExtraGoal()">
+          </label>
+          <label style="font-size:13px"><input id="planWeekend" type="checkbox" onchange="savePlanWeekend()"> Pretendo trabalhar também nos próximos sábados e domingos</label>
+        </div>
+        <p style="font-size:12px;color:#475569;margin:8px 0">Sábados e domingos já trabalhados entram automaticamente quando você registra o faturamento. A opção acima serve apenas para planejar dias futuros, sem criar lançamentos.</p>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-top:12px">
+          <div style="background:#f0fdf4;padding:10px;border-radius:10px"><small>Resultado Uber após despesas variáveis pagas</small><div><strong id="planNetUber">—</strong></div></div>
+          <div style="background:#fff7ed;padding:10px;border-radius:10px"><small>Despesas variáveis do trabalho já pagas</small><div><strong id="planWorkCost">—</strong></div></div>
+          <div style="background:#eff6ff;padding:10px;border-radius:10px"><small>Objetivo de sobra adicional</small><div><strong id="planGoal">—</strong></div></div>
+        </div>
+        <label style="display:block;margin-top:12px;font-size:13px">Estimativa de custos variáveis futuros (% do faturamento: combustível e expediente)
+          <input id="planCostPct" type="number" min="0" max="90" step="0.5" value="20" style="width:90px;margin-left:8px;padding:7px;border:1px solid #cbd5e1;border-radius:8px" oninput="renderWorkPlan()" onchange="savePlanCostPct()"> %
+        </label>
         <p id="planNote" style="margin:12px 0 0;font-size:13px;color:#475569"></p>
       </section>
-      <section style="background:#fff;border:1px solid #dbe3ed;border-radius:16px;padding:16px;margin:0 0 14px">
+      <section style="display:none;background:#fff;border:1px solid #dbe3ed;border-radius:16px;padding:16px;margin:0 0 14px">
         <h3 style="margin:0 0 6px">🔎 Conciliação bancária — fotografia de 12/10/2026</h3>
         <p style="font-size:12px;color:#64748b;margin:0 0 12px">Valores confirmados no extrato. Não são lançamentos e não alteram a sincronização. Compare antes de ajustar o histórico.</p>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:12px">
@@ -1313,11 +1330,11 @@ function renderProfitPanel(){
  const isTransfer=x=>/transfer[êe]ncia/i.test(x.categoria||'')||/transfer[êe]ncia entre contas/i.test(x.descricao||'');
  const isCar=x=>{
    const d=((x.descricao||'')+' '+(x.categoria||'')).toLowerCase();
-   return /combust|abastec|gasolina|etanol|ped[aá]gio|estacionamento|lavagem do carro|seguro.*carro|seguro do carro|rastreador|presta[cç][aã]o do carro|manuten[cç][aã]o|ipva|licenciamento|pneu|mec[aâ]nic/.test(d);
+   return /combust|abastec|gasolina|etanol|ped[aá]gio|estacionamento|lavagem do carro|alimenta[cç][aã]o.*uber|uber.*alimenta[cç][aã]o|seguro.*carro|seguro do carro|rastreador|presta[cç][aã]o do carro|manuten[cç][aã]o|ipva|licenciamento|pneu|mec[aâ]nic/.test(d);
  };
  const isWorkIncome=x=>{
    const d=((x.descricao||'')+' '+(x.categoria||'')).toLowerCase();
-   return /uber|corridas|viagem executiva|viagens executivas|michelon.*viagem/.test(d);
+   return /uber|corridas/.test(d);
  };
  const isPersonal=x=>{
    const d=((x.descricao||'')+' '+(x.categoria||'')).toLowerCase();
@@ -1383,15 +1400,55 @@ function renderOverdraft(){
  $('odBar').style.width=Math.min(100,pct)+'%';
  $('odMessage').textContent=used>limit?'Atenção: o saldo negativo supera o limite informado. Confira o extrato.':used>0?'Cheque especial em uso. O limite restante é crédito do banco, não lucro nem receita.':'Cheque especial não utilizado. Valores dependem da conciliação dos lançamentos.';
 }
-function renderWorkPlan(){
- const ym=$('fMes').value||today().slice(0,7), now=today(),[year,month]=ym.split('-').map(Number);
- const pend=items.filter(x=>x.tipo==='Despesa'&&x.status==='Pendente'&&(x.vencimento||x.data||'').startsWith(ym)).reduce((sum,x)=>sum+(+x.valor||0),0);
- const last=new Date(year,month,0).getDate();let days=0;
- for(let d=1;d<=last;d++){const day=`${ym}-${String(d).padStart(2,'0')}`,week=new Date(year,month-1,d).getDay();if(day>=now&&week!==0&&week!==6)days++;}
- const uber=items.filter(x=>x.tipo==='Receita'&&x.status!=='Pendente'&&(x.data||'').startsWith(ym)&&(/uber/i.test((x.categoria||'')+' '+(x.descricao||'')))).reduce((sum,x)=>sum+(+x.valor||0),0);
- $('planPending').textContent=brl(pend);$('planDays').textContent=days;$('planDaily').textContent=days?brl(pend/days):'—';$('planUber').textContent=brl(uber);
- $('planNote').textContent=days?`Estimativa: ${brl(pend)} ÷ ${days} dias úteis. Não inclui despesas operacionais futuras nem valores já pagos.`:'Sem dias úteis restantes neste mês; revise as pendências.';
+function savePlanCostPct(){
+ const el=$('planCostPct');if(!el)return;
+ const n=Number(el.value);if(!Number.isFinite(n)||n<0||n>90){alert('Informe um percentual entre 0 e 90%.');return;}
+ try{localStorage.setItem('mf_plan_cost_pct_v1',String(n));}catch(e){}
+ renderWorkPlan();
 }
+function savePlanExtraGoal(){
+ const el=$('planExtraGoal');if(!el)return;
+ const n=Number(el.value);if(!Number.isFinite(n)||n<0){alert('Informe uma meta de sobra válida.');return;}
+ try{localStorage.setItem('mf_plan_extra_goal_v1',String(n));}catch(e){}
+ renderWorkPlan();
+}
+function savePlanWeekend(){
+ try{localStorage.setItem('mf_plan_weekend_v1',$('planWeekend').checked?'1':'0');}catch(e){}
+ renderWorkPlan();
+}
+function renderWorkPlan(){
+ const ym=$('fMes').value||today().slice(0,7),now=today(),[year,month]=ym.split('-').map(Number);
+ const money=x=>Number(x.valor||0);
+ const isTransfer=x=>/transfer[êe]ncia/i.test((x.categoria||'')+' '+(x.descricao||''));
+ const isUber=x=>/uber|corridas/i.test((x.categoria||'')+' '+(x.descricao||''))&&!/michelon.*viagem executiva/i.test((x.categoria||'')+' '+(x.descricao||''));
+ const isWorkVariable=x=>{const d=((x.categoria||'')+' '+(x.descricao||'')).toLowerCase();return /combust|abastec|gasolina|etanol|ped[aá]gio|estacionamento|lavagem do carro|alimenta[cç][aã]o.*uber|uber.*alimenta[cç][aã]o/.test(d);};
+ // Contas já pagas estão refletidas nos saldos; não são cobradas de novo.
+ const pend=items.filter(x=>x.tipo==='Despesa'&&x.status==='Pendente'&&!isTransfer(x)&&(x.vencimento||x.data||'').startsWith(ym)).reduce((sum,x)=>sum+money(x),0);
+ const last=new Date(year,month,0).getDate();
+ let weekend=false;try{weekend=localStorage.getItem('mf_plan_weekend_v1')==='1';}catch(e){}
+ const weekendEl=$('planWeekend');if(weekendEl)weekendEl.checked=weekend;
+ let days=0;for(let d=1;d<=last;d++){const day=`${ym}-${String(d).padStart(2,'0')}`,week=new Date(year,month-1,d).getDay();if(day>=now&&(weekend||(week!==0&&week!==6)))days++;}
+ const uber=items.filter(x=>x.tipo==='Receita'&&x.status==='Recebido'&&(x.data||'').startsWith(ym)&&!isTransfer(x)&&isUber(x)).reduce((sum,x)=>sum+money(x),0);
+ const workCost=items.filter(x=>x.tipo==='Despesa'&&x.status==='Pago'&&(x.data||'').startsWith(ym)&&!isTransfer(x)&&isWorkVariable(x)).reduce((sum,x)=>sum+money(x),0);
+ // Saldo consolidado pode ser negativo; cheque especial nunca é contado como saldo próprio.
+ const settled=items.filter(x=>x.status!=='Pendente');
+ const balance=settled.reduce((v,x)=>v+(x.tipo==='Receita'?money(x):x.tipo==='Despesa'||x.tipo==='Reserva'?-money(x):x.tipo==='Ajuste'?money(x):0),0);
+ const cash=Math.max(0,balance);
+ const pctEl=$('planCostPct');let pct=20;
+ try{const saved=localStorage.getItem('mf_plan_cost_pct_v1');if(saved!==null&&Number.isFinite(+saved)&&+saved>=0&&+saved<=90)pct=+saved;}catch(e){}
+ if(pctEl&&document.activeElement!==pctEl)pctEl.value=pct;
+ if(pctEl&&document.activeElement===pctEl){const n=Number(pctEl.value);if(Number.isFinite(n)&&n>=0&&n<=90)pct=n;}
+ const goalEl=$('planExtraGoal');let extra=0;
+ try{const saved=localStorage.getItem('mf_plan_extra_goal_v1');if(saved!==null&&Number.isFinite(+saved)&&+saved>=0)extra=+saved;}catch(e){}
+ if(goalEl&&document.activeElement!==goalEl)goalEl.value=extra;
+ if(goalEl&&document.activeElement===goalEl){const n=Number(goalEl.value);if(Number.isFinite(n)&&n>=0)extra=n;}
+ const missing=Math.max(0,pend+extra-cash),factor=1-pct/100,goal=days&&factor>0?missing/days/factor:null;
+ $('planPending').textContent=brl(pend);$('planCash').textContent=brl(cash);$('planMissing').textContent=brl(missing);
+ $('planDays').textContent=days;$('planDaily').textContent=goal===null?'—':brl(Math.ceil(goal*100)/100);$('planUber').textContent=brl(uber);
+ $('planNetUber').textContent=brl(uber-workCost);$('planWorkCost').textContent=brl(workCost);$('planGoal').textContent=brl(extra);
+ $('planNote').textContent=days?`Meta estimada = (${brl(pend)} em contas pendentes + ${brl(extra)} para guardar − ${brl(Math.min(pend+extra,cash))} de saldo próprio) ÷ ${days} dias planejados ÷ ${(factor*100).toFixed(1).replace('.',',')}% de aproveitamento previsto. Gastos reais já pagos estão refletidos no saldo e não são descontados de novo; ${pct}% estima apenas os gastos dos próximos dias. Dias extras já trabalhados ajudam a reduzir a meta automaticamente. Não inclui contas ainda não lançadas, manutenção não prevista ou juros.`:'Sem dias planejados restantes no mês selecionado. Confira as pendências e ajuste o planejamento, se necessário.';
+}
+
 function render(){
  refreshBankUI();
  const q=$('busca').value.toLowerCase(),fb=$('fBanco').value,fs=$('fStatus').value,ym=$('fMes').value;
@@ -1447,7 +1504,7 @@ function render(){
  const attentions=getAttentions();
  $('attentionCount').textContent=attentions.length;
  $('attentionTxt').textContent=attentions.length?attentions.slice(0,2).map(x=>x.text).join(' • '):'Nenhuma atenção no momento.';
- renderWorkPlan();renderOverdraft();renderReconciliationReference();renderModernHome();
+ renderWorkPlan();renderOverdraft();renderModernHome();
 }
 function backupJSON(){
  const blob=new Blob([JSON.stringify({versao:5,data:new Date().toISOString(),lancamentos:items,contasFixas:fixed,metaReserva:reserveGoal,limites:budgets,bancos:banks,limiteChequeItau:Number(localStorage.getItem('mf_itau_cheque_limite_v1')||1250)},null,2)],{type:'application/json'});
