@@ -844,7 +844,7 @@ Deseja continuar?`)) return;
 }
 
 function getBanks(){ return [...banks].sort((a,b)=>a.localeCompare(b,'pt-BR')); }
-function defaultBank(){return getBanks()[0]||''}
+function defaultBank(){return banks.includes('Uber Conta')?'Uber Conta':(getBanks()[0]||'')}
 function bankOptions(current=''){
  const arr=getBanks();
  if(current && !arr.includes(current)) arr.push(current);
@@ -892,7 +892,7 @@ function deleteBank(encoded){
 }
 function openForm(tipo){
  $('editId').value=''; $('deleteCurrentBtn').style.display='none'; $('formTitle').textContent='Novo lançamento'; $('tipo').value=tipo; $('data').value=today();
- $('descricao').value=''; $('categoria').value=tipo==='Receita'?'Salário':'Alimentação'; $('banco').value=banks.includes('Itaú')?'Itaú':defaultBank();
+ $('descricao').value=''; $('categoria').value=tipo==='Receita'?'Salário':'Alimentação'; $('banco').value=defaultBank();
  $('valor').value=''; $('status').value=tipo==='Receita'?'Recebido':'Pago'; $('vencimento').value=''; $('forma').value='Pix'; $('parcela').value=''; $('recorrente').value='Não'; $('obs').value='';
  mfUpdateInstallmentLabel();
  dlg.showModal();
@@ -904,7 +904,7 @@ function openSalary(day){
  $('vencimento').value=date;
  $('descricao').value=`Salário - dia ${String(day).padStart(2,'0')}`;
  $('categoria').value='Salário';
- $('banco').value=banks.includes('Itaú')?'Itaú':defaultBank();
+ $('banco').value=defaultBank();
  $('status').value='Pendente';
  $('forma').value='Transferência';
  $('recorrente').value='Não';
