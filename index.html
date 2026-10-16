@@ -746,11 +746,7 @@ async function flushSync(){
   if(r.status===409){syncConflict=true;syncDirty=true;syncNotice('Houve alteração no outro aparelho. Faça um backup antes de atualizar esta página.');return}
   if(r.status===401){syncReady=false;syncDirty=true;syncNotice('Sua sessão terminou. Entre novamente para sincronizar.', '<a href="#" onclick="mfRequireLogin();return false">Entrar</a>');return}
   if(!r.ok)throw new Error(result.error||'Falha ao salvar');
-  if(result.michelon){
-   const ids=new Set(result.michelon.ids);
-   items=[...items.filter(x=>!ids.has(x.id)),...result.michelon.entries];
-   localStorage.setItem(KEY,JSON.stringify(items));render();
-  }
+  // Importação automática antiga desativada: somente conferência explícita.
   syncRevision=result.revision;
   syncNotice('✓ Sincronizado com o celular e o PC');
  }catch(e){syncDirty=true;syncNotice('Sem conexão com a nuvem. Seus dados estão neste aparelho; tentarei salvar novamente.');}
@@ -1523,5 +1519,49 @@ function exportCSV(){
 }
 initMonths();refreshBankUI();render();mfStart();
 </script>
+
+<script id="mf-conferencia-segura-v1">
+(()=>{
+'use strict';
+const panel=document.createElement('section');
+panel.style.cssText='margin:16px auto;max-width:1100px;padding:18px;border:1px solid #cbd5e1;border-radius:14px;background:white;color:#0f172a';
+panel.innerHTML='<h2 style="margin:0 0 8px">🔎 Conferência Minhas Viagens</h2><p>Registros novos não alteram os saldos. Confirme o depósito no extrato bancário antes de lançar qualquer receita.</p><button id="mfConfRefresh" type="button">Atualizar conferência</button><p id="mfConfStatus"></p><div id="mfConfList"></div>';
+(document.querySelector('main')||document.body).prepend(panel);
+const $c=id=>panel.querySelector('#'+id);
+const safe=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+let rows=[];
+async function refresh(){
+ if(!mfClient){$c('mfConfStatus').textContent='Entre no Meu Financeiro para conferir.';return}
+ const {data:{user},error:authError}=await mfClient.auth.getUser();
+ if(authError||!user){$c('mfConfStatus').textContent='Entre no Meu Financeiro para conferir.';return}
+ const {data,error}=await mfClient.from('michelon_conferencia').select('origem_id,origem_tipo,dados,estado').eq('user_id',user.id).eq('estado','aguardando').order('recebido_em',{ascending:false}).limit(150);
+ if(error){$c('mfConfStatus').textContent='Fila indisponível: '+error.message;return}
+ rows=data||[];
+ $c('mfConfStatus').textContent=rows.length?`${rows.length} registro(s) aguardando sua conferência.`:'Nenhum registro novo aguardando.';
+ $c('mfConfList').innerHTML=rows.map((x,i)=>{
+ const r=x.dados||{},isApp=x.origem_tipo==='apps';
+ const amount=Number(isApp?(r.receita??r.bruto??0):(r.recebido??0));
+ const id=isApp?'michelon:apps:'+r.id+':receita':'michelon:trip:'+r.id+':receita';
+ const already=items.some(y=>y.id===id);
+ return `<div style="padding:12px 0;border-top:1px solid #e2e8f0"><strong>${safe(r.data)} · ${safe(isApp?r.app:(r.cliente||'Viagem'))}</strong> · ${amount.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}<p style="margin:5px 0">${already?'⚠️ Receita com o mesmo identificador já existe no Financeiro. Não lançar novamente.':'Pendente de conferência. Ganho registrado não comprova depósito.'}</p><button type="button" data-action="review" data-i="${i}">Marcar como conferido (sem lançamento bancário)</button></div>`;
+ }).join('');
+}
+$c('mfConfRefresh').onclick=refresh;
+$c('mfConfList').addEventListener('click',async e=>{
+ const btn=e.target.closest('button[data-action="review"]');if(!btn)return;
+ const x=rows[Number(btn.dataset.i)];if(!x||!mfClient)return;
+ if(!confirm('Marcar este registro como conferido SEM criar receita, despesa ou alterar saldo bancário?'))return;
+ btn.disabled=true;
+ const {data:{user}}=await mfClient.auth.getUser();
+ if(!user){btn.disabled=false;return}
+ const {error}=await mfClient.from('michelon_conferencia').update({estado:'revisado'}).eq('user_id',user.id).eq('origem_id',x.origem_id).eq('estado','aguardando');
+ if(error){alert('Não foi possível confirmar: '+error.message);btn.disabled=false;return}
+ await refresh();
+});
+setInterval(()=>{if(mfClient&&syncReady)refresh()},30000);
+setTimeout(refresh,3000);
+})();
+</script>
+
 </body>
 </html>
